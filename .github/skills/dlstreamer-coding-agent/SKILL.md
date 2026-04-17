@@ -243,7 +243,7 @@ python3 <app_name>.py  # or bash <app_name>.sh
 When running the application inside the container, add write access to the mounted directory as the sample will generate results there.
 Use `-u "$(id -u):$(id -g)"` to run the container as the current user, or pre-create writable
 output directories (`videos/`, `results/`, `models/`) before launching the container.
-Always mount both `/dev/dri` for media and GPU device drivers and `/dev/accel` for NPU devices. If the pipeline uses NPU for any inference element, every docker run command in the generated README must include both device mounts. Show a GPU-only fallback only as a secondary note for systems without NPU.
+Also mount `/dev/dri` for media and GPU device drivers, as well as `/dev/accel` for NPU devices.
 Note that the DLStreamer container does not come with render or accel group permissions by default, so you need to add them at runtime using the `--group-add` flag and the `stat` command to query the correct group ID for your system. For example:
 
 ```bash
@@ -260,13 +260,20 @@ docker run -it --rm \
 
 Replace `<WEEKLY_TAG>` with the actual tag discovered in Step 3 (e.g. `2026.1.0-20260407-weekly-ubuntu24`).
 
+> **Note for the README:** If your system does not have an NPU (`/dev/accel`) or GPU
+> (`/dev/dri`), remove the corresponding `--device` and `--group-add` lines from the
+> command above.
+
 ### Step 7 — Run, Debug and Validate Application
 
-Before running the container, verify that the required host devices are present:
+Before running the container, check which XPU devices exist on the host:
 ```bash
 ls /dev/dri/render* /dev/accel/accel* 2>&1
 ```
-If `/dev/accel` is missing, the host has no NPU — switch the inference device to GPU for this validation run only; do not modify the README's `docker run` command, which must remain valid for all target systems.
+Build the actual `docker run` command by **removing** `--device` and `--group-add` lines
+for any device that is missing on the host. Pick the best available inference device
+using priority **NPU → GPU → CPU**. Do **not** change the README — it must stay generic
+with all devices listed and the note above.
 
 Once the environment is set up, update the instructions in the generated README.md file and verify that the application runs correctly when following them. If the user provided a natural-language description of the expected output, verify that the output matches the description (e.g. check that JSONL files have the expected fields, check that video outputs have the expected overlays, etc.).
 
